@@ -3,25 +3,27 @@
 # 转载请注明出处
 import datetime
 import glob
+from pathlib import Path
 
 import backtrader as bt
 from backtrader.indicators import EMA
+from loguru import logger
 
 
 class TestStrategy(bt.Strategy):
     def __init__(self):
-        self.dataclose = self.datas[0].close
+        self.data_close = self.datas[0].close
         self.volume = self.datas[0].volume
 
-        self.buyprice = None
-        self.buycomm = None
+        self.buy_price = None
+        self.buy_comm = None
         self.order = None
 
         # 9个交易日内最高价
-        self.high_nine = bt.indicators.Highest(self.data.high, period=9)
+        self.high_nine = bt.indicators.Highest()
 
         # 9个交易日内最低价
-        self.low_nine = bt.indicators.Lowest(self.data.low, period=9)
+        self.low_nine = bt.indicators.Lowest()
 
         # 计算rsv值
         self.rsv = 100 * bt.DivByZero(self.data_close - self.low_nine, self.high_nine - self.low_nine, zero=None)
@@ -42,7 +44,7 @@ class TestStrategy(bt.Strategy):
         self.macd = me1 - me2
         self.signal = EMA(self.macd, period=9)
 
-        bt.indicators.MACDHisto(self.data)
+        bt.indicators.MACDHisto()
 
     @staticmethod
     def percent(today, yesterday):
@@ -83,9 +85,9 @@ def run_cerebro(stock_file, result):
     :param stock_file: 股票数据文件位置
     :param result: 回测结果存储变量
     """
+    logger.info(stock_file)
 
     cerebro = bt.Cerebro()
-
     cerebro.addstrategy(TestStrategy)
 
     # 加载数据到模型中
@@ -103,6 +105,8 @@ def run_cerebro(stock_file, result):
         reverse=True,
     )
 
+    logger.info(data)
+
     cerebro.adddata(data)
 
     # 本金10000，每次交易100股
@@ -119,8 +123,13 @@ def run_cerebro(stock_file, result):
     cerebro.broker.get_value()
     money_left = cerebro.broker.getvalue()
 
+    logger.info(money_left)
+
     # 获取股票名字
-    stock_name = stock_file.split("\\")[-1].split(".csv")[0]
+    # stock_name = stock_file.split("\\")[-1].split(".csv")[0]
+    stock_name = Path(stock_file).name.split(".csv")[0]
+
+    logger.info(stock_name)
 
     # 将最终回报率以百分比的形式返回
     result[stock_name] = float(money_left - 10000) / 10000
@@ -130,12 +139,10 @@ files_path = "thoudsand_stocks"
 result = {}
 
 for stock in glob.glob(f'{files_path}/*.csv'):
-    print(stock)
-
     try:
         run_cerebro(stock, result)
     except Exception as e:
-        print(e)
+        raise e
 
 # 计算
 pos = [result[data] for data in result if result[data] > 0]

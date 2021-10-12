@@ -20,13 +20,16 @@ class TestStrategy(bt.Strategy):
             dt = dt or self.datas[0].datetime.date(0)
             logger.info('%s, %s' % (dt.isoformat(), txt))
 
+        logger.info(txt)
+
     def __init__(self):
 
         # 初始化相关数据
-        self.dataclose = self.datas[0].close
+        self.bar_executed = None
+        self.data_close = self.datas[0].close
         self.order = None
-        self.buyprice = None
-        self.buycomm = None
+        self.buy_price = None
+        self.buy_comm = None
 
         # 五日移动平均线
         self.sma5 = bt.indicators.SimpleMovingAverage(self.datas[0], period=5)
@@ -48,8 +51,8 @@ class TestStrategy(bt.Strategy):
         # 检查订单是否完成
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.buyprice = order.executed.price
-                self.buycomm = order.executed.comm
+                self.buy_price = order.executed.price
+                self.buy_comm = order.executed.comm
 
             self.bar_executed = len(self)
 
@@ -77,7 +80,7 @@ class TestStrategy(bt.Strategy):
         """ 下一次执行 """
 
         # 记录收盘价
-        self.log('Close, %.2f' % self.dataclose[0])
+        self.log('Close, %.2f' % self.data_close[0])
 
         # 是否正在下单，如果是的话不能提交第二次订单
         if self.order:
@@ -94,7 +97,7 @@ class TestStrategy(bt.Strategy):
                 self.order = self.sell()
 
     def stop(self):
-        self.log(u'(金叉死叉有用吗) Ending Value %.2f' % (self.broker.getvalue()), doprint=True)
+        self.log('(金叉死叉有用吗) Ending Value %.2f' % (self.broker.getvalue()), doprint=True)
 
 
 if __name__ == '__main__':
@@ -102,7 +105,7 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
 
     # 构建策略
-    strats = cerebro.addstrategy(TestStrategy)
+    cerebro.addstrategy(TestStrategy)
 
     # 每次买100股
     cerebro.addsizer(bt.sizers.FixedSize, stake=100)
@@ -131,7 +134,7 @@ if __name__ == '__main__':
     cerebro.broker.setcommission(0.005)
 
     # 策略执行前的资金
-    print('启动资金: %.2f' % cerebro.broker.getvalue())
+    logger.debug('启动资金: %.2f' % cerebro.broker.getvalue())
 
     # 策略执行
     cerebro.run()

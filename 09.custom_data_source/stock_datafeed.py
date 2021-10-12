@@ -3,7 +3,7 @@ import datetime
 import pymysql
 from backtrader import date2num
 from backtrader.feed import DataBase
-from loguru import logger
+
 
 class MySQLData(DataBase):
     params = (('fromdate', datetime.datetime.min), ('todate', datetime.datetime.max), ('ts_code', ''),)
@@ -21,20 +21,9 @@ class MySQLData(DataBase):
         return:
             data (List): 数据集
         """
-        db = pymysql.connect(
-            host="localhost",
-            user="root",
-            password="12345678",
-            db="golden_stone",
-            port=3306
-        )
-
+        db = pymysql.connect(host="localhost", user="root", password="12345678", db="golden_stone", port=3306)
         cur = db.cursor()
-        cur.execute(
-            f"SELECT * FROM {table} WHERE trade_time >= '{start_time}'"
-            "and trade_time < '{end_time}' and ts_code = '{ts_code}' order by trade_time asc"
-        )
-
+        cur.execute(f"SELECT * FROM {table} WHERE trade_time >= '{start_time}' AND trade_time < '{end_time}' AND ts_code = '{ts_code}' ORDER BY trade_time ASC")
         data = cur.fetchall()
         db.close()
 

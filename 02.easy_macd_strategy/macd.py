@@ -12,7 +12,7 @@ class TestStrategy(bt.Strategy):
     params = (('maperiod', 15),)
 
     def log(self, txt, dt=None):
-        ''' Logging function fot this strategy'''
+        """ Logging function fot this strategy"""
         dt = dt or self.datas[0].datetime.date(0)
         logger.info('%s, %s' % (dt.isoformat(), txt))
 
@@ -21,11 +21,14 @@ class TestStrategy(bt.Strategy):
         return float(today - yesterday) / today
 
     def __init__(self):
-        self.dataclose = self.datas[0].close
+        self.data_close = self.datas[0].close
         self.volume = self.datas[0].volume
 
-        self.buyprice = None
-        self.buycomm = None
+        self.bar_executed_close = None
+        self.bar_executed = None
+
+        self.buy_price = None
+        self.buy_comm = None
         self.order = None
 
         me1 = EMA(self.data, period=12)
@@ -34,7 +37,7 @@ class TestStrategy(bt.Strategy):
         self.macd = me1 - me2
         self.signal = EMA(self.macd, period=9)
 
-        bt.indicators.MACDHisto(self.data)
+        bt.indicators.MACDHisto()
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
@@ -48,9 +51,9 @@ class TestStrategy(bt.Strategy):
                      order.executed.value,
                      order.executed.comm))
 
-                self.buyprice = order.executed.price
-                self.buycomm = order.executed.comm
-                self.bar_executed_close = self.dataclose[0]
+                self.buy_price = order.executed.price
+                self.buy_comm = order.executed.comm
+                self.bar_executed_close = self.data_close[0]
             else:
                 self.log('SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
                          (order.executed.price,
@@ -73,7 +76,7 @@ class TestStrategy(bt.Strategy):
     # Python 实用宝典
     def next(self):
 
-        self.log('Close, %.2f' % self.dataclose[0])
+        self.log('Close, %.2f' % self.data_close[0])
 
         if self.order:
             return
@@ -83,24 +86,20 @@ class TestStrategy(bt.Strategy):
             condition2 = self.macd[0] - self.signal[0]
 
             if condition1 < 0 and condition2 > 0:
-                self.log('BUY CREATE, %.2f' % self.dataclose[0])
+                self.log('BUY CREATE, %.2f' % self.data_close[0])
                 self.order = self.buy()
 
         else:
-            condition = (self.dataclose[0] - self.bar_executed_close) / self.dataclose[0]
+            condition = (self.data_close[0] - self.bar_executed_close) / self.data_close[0]
 
             if condition > 0.1 or condition < -0.1:
-                self.log('SELL CREATE, %.2f' % self.dataclose[0])
+                self.log('SELL CREATE, %.2f' % self.data_close[0])
                 self.order = self.sell()
 
 
 if __name__ == '__main__':
     cerebro = bt.Cerebro()
-
     cerebro.addstrategy(TestStrategy)
-
-    # modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    # datapath = os.path.join(modpath, '603186.csv')
 
     # 加载数据到模型中
     data = bt.feeds.GenericCSVData(
@@ -118,11 +117,8 @@ if __name__ == '__main__':
     )
 
     cerebro.adddata(data)
-
     cerebro.broker.setcash(10000)
-
     cerebro.addsizer(bt.sizers.FixedSize, stake=100)
-
     cerebro.broker.setcommission(commission=0.005)
 
     logger.debug('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())

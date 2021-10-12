@@ -2,12 +2,12 @@
 # 2020/05/26
 # 转载请注明出处
 import datetime
-import os.path
-import sys
-import numpy as np
+
 import backtrader as bt
+import numpy as np
 from backtrader.indicators import EMA
 from loguru import logger
+
 
 class TestStrategy(bt.Strategy):
     params = (
@@ -38,7 +38,7 @@ class TestStrategy(bt.Strategy):
         self.macd = me1 - me2
         self.signal = EMA(self.macd, period=9)
 
-        bt.indicators.MACDHisto(self.data)
+        bt.indicators.MACDHisto()
 
     def notify_order(self, order):
         # 交易状态处理
@@ -59,7 +59,7 @@ class TestStrategy(bt.Strategy):
                 self.log("SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f" % (order.executed.price, order.executed.value, order.executed.comm))
 
                 # 收益率计算
-                profit_rate = float(order.executed.price - self.buyprice)/float(self.buyprice)
+                profit_rate = float(order.executed.price - self.buyprice) / float(self.buyprice)
 
                 # 存入策略变量
                 self.params.profits.append(profit_rate)
@@ -101,16 +101,12 @@ class TestStrategy(bt.Strategy):
 
 
 if __name__ == "__main__":
-
-    cerebro = bt.Cerebro(maxcpus=None)
+    cerebro = bt.Cerebro()
     cerebro.addstrategy(TestStrategy)
-
-    modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    datapath = os.path.join(modpath, "603186.csv")
 
     # 加载数据到模型中
     data = bt.feeds.GenericCSVData(
-        dataname=datapath,
+        dataname="603186.csv",
         fromdate=datetime.datetime(2010, 1, 1),
         todate=datetime.datetime(2020, 4, 12),
         dtformat="%Y%m%d",

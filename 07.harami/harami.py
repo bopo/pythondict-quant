@@ -2,12 +2,11 @@
 # 2020/08/20
 # 转载请注明出处
 import datetime
-import os.path
-import sys
-from loguru import logger
+
 import backtrader as bt
 import numpy as np
 from backtrader.indicators import EMA
+from loguru import logger
 
 
 class TestStrategy(bt.Strategy):
@@ -108,7 +107,7 @@ class TestStrategy(bt.Strategy):
 
 
 if __name__ == "__main__":
-    cerebro = bt.Cerebro(maxcpus=None)
+    cerebro = bt.Cerebro()
     cerebro.addstrategy(TestStrategy)
 
     # 加载数据到模型中

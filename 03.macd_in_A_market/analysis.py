@@ -3,29 +3,9 @@ import pickle
 from loguru import logger
 
 # 加载保存的结果
-with open('./batch_macd_result.txt', 'rb') as f:
-    data = pickle.load(f)
+data = pickle.load(open('./batch_macd_result.txt', 'rb'))
 
 # 计算
-# pos = []
-# neg = []
-
-# ten_pos = []
-# ten_neg = []
-#
-# for result in data:
-#     res = data[result]
-#
-#     if res > 0:
-#         pos.append(res)
-#     else:
-#         neg.append(res)
-#
-#     if res > 0.1:
-#         ten_pos.append(result)
-#     elif res < -0.1:
-#         ten_neg.append(result)
-
 pos = [data[result] for result in data if data[result] > 0]
 neg = [data[result] for result in data if data[result] <= 0]
 

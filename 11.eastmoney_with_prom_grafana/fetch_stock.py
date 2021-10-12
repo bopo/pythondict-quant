@@ -12,8 +12,8 @@ gauge = Gauge('rank', '人气榜排名', ['stock_id'], registry=reg)
 
 def process_request():
     url = "https://emappdata.eastmoney.com/stockrank/getAllCurrentList"
-
     kwargs = {"appId": "appId01", "pageNo": 1, "pageSize": "100"}
+
     client = httpx.Client(verify=False)
     result = client.post(url, json=kwargs).json()
 

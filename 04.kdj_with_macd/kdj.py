@@ -2,40 +2,47 @@
 # 2020/05/05
 # 转载请注明出处
 import datetime
-import os.path
-import sys
+
 import backtrader as bt
-from backtrader.indicators import EMA
+from loguru import logger
 
 
 class TestStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         """ Logging function fot this strategy"""
         dt = dt or self.datas[0].datetime.date(0)
-        print("%s, %s" % (dt.isoformat(), txt))
+        logger.info("%s, %s" % (dt.isoformat(), txt))
 
     @staticmethod
     def percent(today, yesterday):
         return float(today - yesterday) / today
 
     def __init__(self):
-        self.dataclose = self.datas[0].close
+        self.data_close = self.datas[0].close
         self.volume = self.datas[0].volume
 
         self.order = None
-        self.buyprice = None
-        self.buycomm = None
+        self.buy_price = None
+        self.buy_comm = None
+
+        self.bar_executed_close = None
+        self.bar_executed = None
 
         # 9个交易日内最高价
-        self.high_nine = bt.indicators.Highest(self.data.high, period=9)
+        self.high_nine = bt.indicators.Highest()
+
         # 9个交易日内最低价
-        self.low_nine = bt.indicators.Lowest(self.data.low, period=9)
+        self.low_nine = bt.indicators.Lowest()
+
         # 计算rsv值
         self.rsv = 100 * bt.DivByZero(self.data_close - self.low_nine, self.high_nine - self.low_nine, zero=None)
+
         # 计算rsv的3周期加权平均值，即K值
         self.K = bt.indicators.EMA(self.rsv, period=3)
+
         # D值=K值的3周期加权平均值
         self.D = bt.indicators.EMA(self.K, period=3)
+
         # J=3*K-2*D
         self.J = 3 * self.K - 2 * self.D
 
@@ -50,9 +57,9 @@ class TestStrategy(bt.Strategy):
                     % (order.executed.price, order.executed.value, order.executed.comm)
                 )
 
-                self.buyprice = order.executed.price
-                self.buycomm = order.executed.comm
-                self.bar_executed_close = self.dataclose[0]
+                self.buy_price = order.executed.price
+                self.buy_comm = order.executed.comm
+                self.bar_executed_close = self.data_close[0]
             else:
                 self.log(
                     "SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f"
@@ -73,7 +80,7 @@ class TestStrategy(bt.Strategy):
 
     # Python 实用宝典
     def next(self):
-        self.log("Close, %.2f" % self.dataclose[0])
+        self.log("Close, %.2f" % self.data_close[0])
         if self.order:
             return
 
@@ -82,26 +89,22 @@ class TestStrategy(bt.Strategy):
         if not self.position:
             # J - D 值
             if condition1 < 0 and condition2 > 0:
-                self.log("BUY CREATE, %.2f" % self.dataclose[0])
+                self.log("BUY CREATE, %.2f" % self.data_close[0])
                 self.order = self.buy()
 
         else:
             if condition1 > 0 or condition2 < 0:
-                self.log("SELL CREATE, %.2f" % self.dataclose[0])
+                self.log("SELL CREATE, %.2f" % self.data_close[0])
                 self.order = self.sell()
 
 
 if __name__ == "__main__":
     cerebro = bt.Cerebro()
-
     cerebro.addstrategy(TestStrategy)
-
-    modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    datapath = os.path.join(modpath, "002859.csv")
 
     # 加载数据到模型中
     data = bt.feeds.GenericCSVData(
-        dataname=datapath,
+        dataname="002859.csv",
         fromdate=datetime.datetime(2010, 1, 1),
         todate=datetime.datetime(2020, 4, 21),
         dtformat="%Y%m%d",

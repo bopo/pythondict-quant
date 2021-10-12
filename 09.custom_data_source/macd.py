@@ -1,16 +1,17 @@
 # Python实用宝典
 # 转载请注明出处
 import datetime
-import os.path
-import sys
+
 import backtrader as bt
-from stock_datafeed import MySQLData
 from backtrader.indicators import EMA
 from loguru import logger
 
+from stock_datafeed import MySQLData
+
+
 class TestStrategy(bt.Strategy):
     def log(self, txt, dt=None):
-        ''' Logging function fot this strategy'''
+        """ Logging function fot this strategy"""
         dt = dt or self.datas[0].datetime.date(0)
         logger.info('%s, %s' % (dt.isoformat(), txt))
 
@@ -33,7 +34,7 @@ class TestStrategy(bt.Strategy):
         self.macd = me1 - me2
         self.signal = EMA(self.macd, period=9)
 
-        bt.indicators.MACDHisto(self.data)
+        bt.indicators.MACDHisto()
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:

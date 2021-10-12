@@ -4,23 +4,28 @@
 import datetime
 import os.path
 import sys
-import numpy as np
+
 import backtrader as bt
 import matplotlib.pyplot as plt
+import numpy as np
 from backtrader.indicators import EMA
 from loguru import logger
 
+
 class TestStrategy(bt.Strategy):
     def __init__(self):
-        self.dataclose = self.datas[0].close
-        self.datahigh = self.datas[0].high
-        self.datalow = self.datas[0].low
-        self.dataopen = self.datas[0].open
+        self.bar_executed_close = 0
+        self.bar_executed = 0
+
+        self.data_close = self.datas[0].close
+        self.data_high = self.datas[0].high
+        self.data_low = self.datas[0].low
+        self.data_open = self.datas[0].open
         self.volume = self.datas[0].volume
 
         self.order = None
-        self.buyprice = None
-        self.buycomm = None
+        self.buy_price = None
+        self.buy_comm = None
         self.params.profits = []
 
         self.sma20 = bt.indicators.SimpleMovingAverage(self.datas[0], period=20)
@@ -30,7 +35,7 @@ class TestStrategy(bt.Strategy):
         self.macd = me1 - me2
         self.signal = EMA(self.macd, period=9)
 
-        bt.indicators.MACDHisto(self.data)
+        bt.indicators.MACDHisto()
 
     def log(self, txt, dt=None):
         """ Logging function fot this strategy"""
@@ -45,8 +50,8 @@ class TestStrategy(bt.Strategy):
             if order.isbuy():
                 self.log("BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f" % (order.executed.price, order.executed.value, order.executed.comm))
 
-                self.buyprice = order.executed.price
-                self.buycomm = order.executed.comm
+                self.buy_price = order.executed.price
+                self.buy_comm = order.executed.comm
                 self.bar_executed_close = self.dataclose[0]
             else:
                 self.log("SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f" % (order.executed.price, order.executed.value, order.executed.comm))
@@ -70,8 +75,10 @@ class TestStrategy(bt.Strategy):
     # Python 实用宝典
     def next(self):
         self.log("Close, %.2f" % self.dataclose[0])
+
         if self.order:
             return
+
         if not self.position:
             # condition1 = self.sma20[0] > self.dataclose[0]
             if self.dataclose[-1] < self.dataopen[-1]:
@@ -132,6 +139,8 @@ def run_cerebro(stock_file, result):
 
     # 将最终回报率以百分比的形式返回
     result[stock_name] = cerebro.runstrats[0][0].params.profits
+
+    return result
 
 
 files_path = "thoudsand_stocks"

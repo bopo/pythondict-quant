@@ -20,18 +20,21 @@ class TestStrategy(bt.Strategy):
         return float(today - yesterday) / today
 
     def __init__(self):
-        self.dataclose = self.datas[0].close
+        self.data_close = self.datas[0].close
         self.volume = self.datas[0].volume
 
         self.order = None
-        self.buyprice = None
-        self.buycomm = None
+        self.buy_price = None
+        self.buy_comm = None
+
+        self.bar_executed_close = None
+        self.bar_executed = None
 
         # 9个交易日内最高价
-        self.high_nine = bt.indicators.Highest(self.data.high, period=9)
+        self.high_nine = bt.indicators.Highest()
 
         # 9个交易日内最低价
-        self.low_nine = bt.indicators.Lowest(self.data.low, period=9)
+        self.low_nine = bt.indicators.Lowest()
 
         # 计算rsv值
         self.rsv = 100 * bt.DivByZero(self.data_close - self.low_nine, self.high_nine - self.low_nine, zero=None)
@@ -52,7 +55,7 @@ class TestStrategy(bt.Strategy):
         self.macd = me1 - me2
         self.signal = EMA(self.macd, period=9)
 
-        bt.indicators.MACDHisto(self.data)
+        bt.indicators.MACDHisto()
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
@@ -62,10 +65,10 @@ class TestStrategy(bt.Strategy):
             if order.isbuy():
                 self.log("BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f" % (order.executed.price, order.executed.value, order.executed.comm))
 
-                self.buyprice = order.executed.price
-                self.buycomm = order.executed.comm
+                self.buy_price = order.executed.price
+                self.buy_comm = order.executed.comm
 
-                self.bar_executed_close = self.dataclose[0]
+                self.bar_executed_close = self.data_close[0]
             else:
                 self.log("SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f" % (order.executed.price, order.executed.value, order.executed.comm))
 
@@ -84,7 +87,7 @@ class TestStrategy(bt.Strategy):
 
     # Python 实用宝典
     def next(self):
-        self.log("Close, %.2f" % self.dataclose[0])
+        self.log("Close, %.2f" % self.data_close[0])
 
         if self.order:
             return
@@ -95,7 +98,7 @@ class TestStrategy(bt.Strategy):
             condition2 = self.macd[0] - self.signal[0]
 
             if condition1 < 0 and condition2 > 0:
-                self.log('BUY CREATE, %.2f' % self.dataclose[0])
+                self.log('BUY CREATE, %.2f' % self.data_close[0])
                 self.order = self.buy()
 
         else:
@@ -104,7 +107,7 @@ class TestStrategy(bt.Strategy):
             condition2 = self.J[0] - self.D[0]
 
             if condition1 > 0 or condition2 < 0:
-                self.log("SELL CREATE, %.2f" % self.dataclose[0])
+                self.log("SELL CREATE, %.2f" % self.data_close[0])
                 self.order = self.sell()
 
 
