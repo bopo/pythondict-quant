@@ -8,7 +8,7 @@ import numpy as np
 import backtrader as bt
 import matplotlib.pyplot as plt
 from backtrader.indicators import EMA
-
+from loguru import logger
 
 class TestStrategy(bt.Strategy):
     def __init__(self):
@@ -35,27 +35,22 @@ class TestStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         """ Logging function fot this strategy"""
         dt = dt or self.datas[0].datetime.date(0)
-        # print('%s, %s' % (dt.isoformat(), txt))
+        logger.info('%s, %s' % (dt.isoformat(), txt))
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
             return
+
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.log(
-                    "BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f"
-                    % (order.executed.price, order.executed.value, order.executed.comm)
-                )
+                self.log("BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f" % (order.executed.price, order.executed.value, order.executed.comm))
 
                 self.buyprice = order.executed.price
                 self.buycomm = order.executed.comm
                 self.bar_executed_close = self.dataclose[0]
             else:
-                self.log(
-                    "SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f"
-                    % (order.executed.price, order.executed.value, order.executed.comm)
-                )
-                temp = float(order.executed.price - self.buyprice)/float(self.buyprice)
+                self.log("SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f" % (order.executed.price, order.executed.value, order.executed.comm))
+                temp = float(order.executed.price - self.buyprice) / float(self.buyprice)
                 self.params.profits.append(temp)
 
             self.bar_executed = len(self)
@@ -68,6 +63,7 @@ class TestStrategy(bt.Strategy):
     def notify_trade(self, trade):
         if not trade.isclosed:
             return
+
         self.bar_executed = len(self)
         self.log("OPERATION PROFIT, GROSS %.2f, NET %.2f" % (trade.pnl, trade.pnlcomm))
 
@@ -79,24 +75,17 @@ class TestStrategy(bt.Strategy):
         if not self.position:
             # condition1 = self.sma20[0] > self.dataclose[0]
             if self.dataclose[-1] < self.dataopen[-1]:
-                harami = (
-                    self.datahigh[0] < self.dataopen[-1]
-                    and self.datalow[0] > self.dataclose[-1]
-                )
+                harami = (self.datahigh[0] < self.dataopen[-1] and self.datalow[0] > self.dataclose[-1])
             else:
-                harami = (
-                    self.datahigh[0] < self.dataclose[-1]
-                    and self.datalow[0] > self.dataopen[-1]
-                )
+                harami = (self.datahigh[0] < self.dataclose[-1] and self.datalow[0] > self.dataopen[-1])
 
             if harami:
                 self.log("BUY CREATE, %.2f" % self.dataclose[0])
                 self.order = self.buy()
 
         else:
-            condition = (self.dataclose[0] - self.bar_executed_close) / self.dataclose[
-                0
-            ]
+            condition = (self.dataclose[0] - self.bar_executed_close) / self.dataclose[0]
+
             if condition > 0.1 or condition < -0.1:
                 self.log("SELL CREATE, %.2f" % self.dataclose[0])
                 self.order = self.sell()
@@ -110,7 +99,6 @@ def run_cerebro(stock_file, result):
     """
 
     cerebro = bt.Cerebro()
-
     cerebro.addstrategy(TestStrategy)
 
     # 加载数据到模型中
@@ -146,29 +134,26 @@ def run_cerebro(stock_file, result):
     result[stock_name] = cerebro.runstrats[0][0].params.profits
 
 
-files_path = "./thoudsand_stocks/"
+files_path = "thoudsand_stocks"
 result = {}
 
 # 遍历所有股票数据
 for stock in os.listdir(files_path):
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    datapath = os.path.join(modpath, files_path + stock)
+    datapath = os.path.join(modpath, files_path, stock)
+
     print(datapath)
+
     try:
         run_cerebro(datapath, result)
     except Exception as e:
         print(e)
 
 # 计算
-pos = []
-neg = []
-for data in result:
-    res = np.mean(result[data])
-    if res > 0:
-        pos.append(res)
-    else:
-        neg.append(res)
-print(f"正收益数量: {len(pos)}, 负收益数量:{len(neg)}")
+pos = [np.mean(result[data]) for data in result if np.mean(result[data]) > 0]
+neg = [np.mean(result[data]) for data in result if np.mean(result[data]) <= 0]
+
+logger.success(f"正收益数量: {len(pos)}, 负收益数量:{len(neg)}")
 
 plt.hist(pos, facecolor="red", edgecolor="black", alpha=0.7)
 plt.hist(neg, facecolor="green", edgecolor="black", alpha=0.7)

@@ -6,13 +6,13 @@ import sys
 import backtrader as bt
 from stock_datafeed import MySQLData
 from backtrader.indicators import EMA
-
+from loguru import logger
 
 class TestStrategy(bt.Strategy):
     def log(self, txt, dt=None):
         ''' Logging function fot this strategy'''
         dt = dt or self.datas[0].datetime.date(0)
-        print('%s, %s' % (dt.isoformat(), txt))
+        logger.info('%s, %s' % (dt.isoformat(), txt))
 
     @staticmethod
     def percent(today, yesterday):
@@ -100,18 +100,16 @@ if __name__ == '__main__':
         fromdate=datetime.datetime(2017, 1, 1),
         todate=datetime.datetime(2020, 4, 12),
     )
+
     cerebro.adddata(data)
-
     cerebro.broker.setcash(10000)
-
     cerebro.addsizer(bt.sizers.FixedSize, stake=100)
-
     cerebro.broker.setcommission(commission=0.005)
 
-    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
+    logger.debug('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
     cerebro.run()
 
-    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+    logger.debug('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
     cerebro.plot()

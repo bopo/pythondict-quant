@@ -31,9 +31,7 @@ class TestStrategy(bt.Strategy):
         # 9个交易日内最低价
         self.low_nine = bt.indicators.Lowest(self.data.low, period=9)
         # 计算rsv值
-        self.rsv = 100 * bt.DivByZero(
-            self.data_close - self.low_nine, self.high_nine - self.low_nine, zero=None
-        )
+        self.rsv = 100 * bt.DivByZero(self.data_close - self.low_nine, self.high_nine - self.low_nine, zero=None)
         # 计算rsv的3周期加权平均值，即K值
         self.K = bt.indicators.EMA(self.rsv, period=3)
         # D值=K值的3周期加权平均值
@@ -44,6 +42,7 @@ class TestStrategy(bt.Strategy):
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
             return
+
         if order.status in [order.Completed]:
             if order.isbuy():
                 self.log(
@@ -114,12 +113,10 @@ if __name__ == "__main__":
         volume=10,
         reverse=True,
     )
+
     cerebro.adddata(data)
-
     cerebro.broker.setcash(10000)
-
     cerebro.addsizer(bt.sizers.FixedSize, stake=100)
-
     cerebro.broker.setcommission(commission=0.005)
 
     print("Starting Portfolio Value: %.2f" % cerebro.broker.getvalue())
